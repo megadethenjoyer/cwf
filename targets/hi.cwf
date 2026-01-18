@@ -1,0 +1,18 @@
+cwf: /hello
+
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>hi</title>
+    </head>
+
+    <body>
+        <h1>another page</h1>
+        <cwf>get_message <p>{0} {1}</p></cwf>
+        <cwf>get_message <p>{1} {0}</p></cwf>
+    </body>
+
+</html>
