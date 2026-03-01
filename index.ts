@@ -8,12 +8,12 @@ async function cwfTarget(path: string) {
 	const lines = data.split('\n');
 	const firstLine = lines[0]?.trim()!;
 	const firstLineParts = firstLine.split('cwf:')
-	
+
 	if (firstLineParts.length != 2) {
 		console.log('CWF file invalid, first line must start with cwf:');
 		throw new Error('CWF file invalid');
 	}
-	
+
 	const url = firstLineParts[1]!.trim();
 	targets.set(url, lines.slice(1).join('\n'));
 }
@@ -23,7 +23,7 @@ function cwfHandler(name: string, fn: () => string[]) {
 }
 
 function evaluateExpression(expr: string, cache: Map<string, string[]>): string {
-	const parts = expr.split(' ');
+	const parts = expr.trim().split(' ');
 	const handler = parts[0]!;
 	const template = parts.slice(1).join(' ');
 	let output = [];
@@ -35,7 +35,7 @@ function evaluateExpression(expr: string, cache: Map<string, string[]>): string 
 	}
 
 	let replaced = template;
-	
+
 	while (true) {
 		const v = ` ${replaced}`.match(new RegExp(/[^{]\{([0-9])\}/m))!;
 		if (v === null) {
@@ -71,7 +71,7 @@ function rewriteTemplate(req: Request, target: string): string {
 
 function serveTarget(req: Request, target: string): Response {
 	const rewritten = rewriteTemplate(req, target);
-	
+
 	return new Response(rewritten, {
 		headers: {
 			'Content-Type': 'text/html'
