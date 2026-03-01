@@ -1,5 +1,7 @@
 import fs from 'node:fs/promises';
 
+const CACHE_ENABLED = false;
+
 type HandlerResult = string[] | string[][];
 type Handler = () => HandlerResult;
 
@@ -34,7 +36,9 @@ function evaluateExpression(expr: string, cache: Map<string, HandlerResult>): st
 		outputArr = cache.get(handler)!;
 	} else {
 		outputArr = (handlers.get(handler)!)();
-		cache.set(handler, outputArr);
+		if (CACHE_ENABLED) {
+			cache.set(handler, outputArr);
+		}
 	}
 
 	if (!Array.isArray(outputArr[0])) {
