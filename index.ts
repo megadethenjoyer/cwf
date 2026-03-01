@@ -1,7 +1,10 @@
 import fs from 'node:fs/promises';
 
+type HandlerResult = string[] | string[][];
+type Handler = () => HandlerResult;
+
 const targets = new Map<string, string>();
-const handlers = new Map<string, () => string[]>;
+const handlers = new Map<string, Handler>;
 
 async function cwfTarget(path: string) {
 	const data = await fs.readFile(path, 'utf-8');
@@ -18,33 +21,43 @@ async function cwfTarget(path: string) {
 	targets.set(url, lines.slice(1).join('\n'));
 }
 
-function cwfHandler(name: string, fn: () => string[]) {
+function cwfHandler(name: string, fn: Handler) {
 	handlers.set(name, fn);
 }
 
-function evaluateExpression(expr: string, cache: Map<string, string[]>): string {
+function evaluateExpression(expr: string, cache: Map<string, HandlerResult>): string {
 	const parts = expr.trim().split(' ');
 	const handler = parts[0]!;
 	const template = parts.slice(1).join(' ');
-	let output = [];
+	let outputArr = [];
 	if (cache.has(handler)) {
-		output = cache.get(handler)!;
+		outputArr = cache.get(handler)!;
 	} else {
-		output = (handlers.get(handler)!)();
-		cache.set(handler, output);
+		outputArr = (handlers.get(handler)!)();
+		cache.set(handler, outputArr);
 	}
 
-	let replaced = template;
+	if (!Array.isArray(outputArr[0])) {
+		outputArr = [outputArr];
+	}
 
-	while (true) {
-		const v = ` ${replaced}`.match(new RegExp(/[^{]\{([0-9])\}/m))!;
-		if (v === null) {
-			break;
+	let totalReplaced = '';
+
+	for (const output of outputArr) {
+		let replaced = template;
+
+		while (true) {
+			const v = ` ${replaced}`.match(new RegExp(/[^{]\{([0-9])\}/m))!;
+			if (v === null) {
+				break;
+			}
+			replaced = `${replaced.slice(0, v.index)}${output[parseInt(v[1]!)]}${replaced.slice(v.index! + v[1]!.length + 2)}`;
 		}
-		replaced = `${replaced.slice(0, v.index)}${output[parseInt(v[1]!)]}${replaced.slice(v.index! + v[1]!.length + 2)}`;
+
+		totalReplaced += replaced;
 	}
 
-	return replaced;
+	return totalReplaced;
 }
 
 function rewriteTemplate(req: Request, target: string): string {
@@ -99,8 +112,15 @@ function cwfRun() {
 
 cwfTarget('targets/index.cwf');
 cwfTarget('targets/hi.cwf');
+cwfTarget('targets/messages.cwf');
 cwfHandler('get_message', () => {
 	return ['hi', 'hello'];
+});
+cwfHandler('get_messages', () => {
+	return [
+		['alice', 'hi bob'],
+		['bob', 'hi alice']
+	];
 });
 
 cwfRun();
